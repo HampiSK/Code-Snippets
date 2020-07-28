@@ -1,5 +1,2 @@
-# Simple-Timer
-Simple millisecond timer using chrono library
-
-Compile with:
-- g++ -std=c++11 timer.cpp
+# Code Snippets
+Just to make my life easier :)
