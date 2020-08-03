@@ -13,68 +13,80 @@ struct Buttons
     short unsigned int button_backspace  = 8;
     short unsigned int button_enter      = 13;
 
-    bool confirm_state = false;
-    bool escape_state = false;
-    bool backspace_state = false;
-    bool button_state = false;
-};
+    bool left_state                      = false;
+    bool up_state                        = false;
+    bool right_state                     = false;
+    bool down_state                      = false;
+    bool confirm_state                   = false;
+    bool escape_state                    = false;
+    bool backspace_state                 = false;
+    bool button_state                    = false;
 
-static Buttons Button;
+    void Button()
+    {
+        int key = 0;
+        for(int i = 8; i <= 256; i++)
+        {           
+            if(GetAsyncKeyState(i) & 0x7FFF)    
+            {         
+                key = i;
+                break;
+            }
+        }
 
-void buttons()
-{
-    int key = 0;
-    for(int i = 8; i <= 256; i++)
-    {           
-        if(GetAsyncKeyState(i) & 0x7FFF)    
-        {         
-            key = i;
-            break;
+        if (key == button_left)
+        {
+            RENDER_STATE.x--;
+            button_state = true;  
+            left_state = true;          
+        }
+        else if (key == button_up)
+        {
+            RENDER_STATE.y--;
+            button_state = true;    
+            up_state = true;        
+        }
+        else if (key == button_right)
+        {
+            RENDER_STATE.x++;
+            button_state = true; 
+            right_state = true;              
+        }
+        else if (key == button_down)
+        {
+            RENDER_STATE.y++;
+            button_state = true;   
+            down_state = true;          
+        }
+        else if (key == button_enter)
+        {
+            confirm_state = true;
+            button_state = true;
+        }
+        else if (key == button_escape)
+        {
+            escape_state = true;
+            button_state = true;
+        }
+        else if (key == button_backspace)
+        {
+            backspace_state = true;
+            button_state = true;
+        }
+        else
+        {
+            left_state      = false;
+            up_state        = false; 
+            right_state     = false; 
+            down_state      = false;  
+            backspace_state = false;
+            confirm_state   = false;
+            escape_state    = false;
+            button_state    = false;
         }
     }
+};
 
-    if (key == Button.button_left)
-    {
-        RENDERSTATE.x--;
-        Button.button_state = true;            
-    }
-    else if (key == Button.button_up)
-    {
-        RENDERSTATE.y--;
-        Button.button_state = true;            
-    }
-    else if (key == Button.button_right)
-    {
-        RENDERSTATE.x++;
-        Button.button_state = true;            
-    }
-    else if (key == Button.button_down)
-    {
-        RENDERSTATE.y++;
-        Button.button_state = true;            
-    }
-    else if (key == Button.button_enter)
-    {
-        Button.confirm_state = true;
-        Button.button_state = true;
-    }
-    else if (key == Button.button_escape)
-    {
-        Button.escape_state = true;
-        Button.button_state = true;
-    }
-    else if (key == Button.button_backspace)
-    {
-        Button.backspace_state = true;
-        Button.button_state = true;
-    }
-    else
-    {
-        Button.backspace_state = false;
-        Button.confirm_state = false;
-        Button.escape_state = false;
-        Button.button_state = false;
-    }
-}
+static Buttons BUTTON;
 
 #endif /* BUTTON_H_INCLUDED */

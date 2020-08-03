@@ -6,17 +6,10 @@
 */
 
 #include <iostream>
-#include <algorithm>
-#include <chrono>
-#include <memory>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
 #include <string>
 #include <vector>
 #include <map>
 #include <windows.h>
-#include <queue> 
 
 #include "MainWindow.h"
 #include "Button.h"

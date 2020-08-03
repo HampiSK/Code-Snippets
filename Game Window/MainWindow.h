@@ -5,25 +5,31 @@
 
 struct RenderState
 {
-    int width;
-    int height;
-    int size;
-    int x = 0;
-    int y = 0;
-    bool changed_buffer;
+    /* Holding data for proper functionality of console window. */
 
-    void cord_clear()
+    int screen_width;           // Last known screen width
+    int screen_height;          // Last known screen height
+    int screen_size;            // Last known screen size
+    int x = 0;                  // Tracking x line of current cursor position (cursor is changed by the keys not a mouse)
+    int y = 0;                  // Tracking y line of current cursor position (cursor is changed by the keys not a mouse)
+    bool changed_buffer;        // Changed to true when screen size is changed
+    bool running = true;        // Main while loop
+
+    void CursorReset()
     {
+        /* Reset cursor to "default" position. */
         x,y = 0;
     }
 };
 
-static RenderState RENDERSTATE;
+static RenderState RENDER_STATE;
 
 struct MainWindow
 {
-    int window_width() 
+    int WindowWidth() 
     {
+        /* Check and return (int) window width. */
+
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         int width;
 
@@ -33,8 +39,10 @@ struct MainWindow
         return width;
     }
 
-    int window_height() 
+    int WindowHeight() 
     {
+        /* Check and return (int) window height. */
+
         CONSOLE_SCREEN_BUFFER_INFO csbi;
         int height;
 
@@ -44,40 +52,47 @@ struct MainWindow
         return height;
     }
 
-    void ShowConsoleCursor(bool showFlag)
+    void ShowConsoleCursor(bool show)
     {
+        /* Set the "default" console cursor visibility. */
+
         HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
         CONSOLE_CURSOR_INFO cursorInfo;
         GetConsoleCursorInfo(out, &cursorInfo);
 
         // set the cursor visibility
-        cursorInfo.bVisible = showFlag; 
-
+        cursorInfo.bVisible = show; 
         SetConsoleCursorInfo(out, &cursorInfo);
     } 
 
-    int center(int pointA, int pointB, std::string text)
+    int Center(int pointA, int pointB, std::string text)
     {
+        /* Center position of the text between two points. */
+
         int letters = text.size();
         int half =  (pointA - pointB - letters) / 2;
         return pointB + half + 1;
     }
 
-    int clamp(int min, int val, int max)
+    int Clamp(int value, int max, int min = 0)
     {
-        if (val < min) return min;
-        if (val > max) return max;
-        return val;
+        /* Checking if value is out of range and if it is, return corrected value. Default: min = 0 */
+
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
     }
 
     template< typename TYPE >
-    void text(float x, float y, TYPE message, int color)
+    void Text(float x, float y, TYPE message, int color = 7)
     {
+        /* Display any type of message on specified cords. Default color = 7 (white) */
+
         HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
         COORD coord;
 
-        x += RENDERSTATE.width / 2.f;
-        y += RENDERSTATE.height / 2.f;
+        x += RENDER_STATE.screen_width / 2.f;
+        y += RENDER_STATE.screen_height / 2.f;
 
         coord.X = x;
         coord.Y = y;
@@ -87,63 +102,91 @@ struct MainWindow
         std::cout << message << std::endl; 
     }
 
-    void WindowInit() 
+    void Clear(char fill = ' ') 
+    { 
+        /* Clear window screen */
+        
+        COORD tl = {0,0};
+        CONSOLE_SCREEN_BUFFER_INFO s;
+        HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);   
+        GetConsoleScreenBufferInfo(console, &s);
+        DWORD written, cells = s.dwSize.X * s.dwSize.Y;
+        FillConsoleOutputCharacter(console, fill, cells, tl, &written);
+        FillConsoleOutputAttribute(console, s.wAttributes, cells, tl, &written);
+        SetConsoleCursorPosition(console, tl);
+    }
+
+    void SetWindow(int width, int height) 
+    { 
+        /* Set Window size */
+
+        _COORD coord; 
+        coord.X = width; 
+        coord.Y = height; 
+
+        _SMALL_RECT Rect; 
+        Rect.Top = 0; 
+        Rect.Left = 0; 
+        Rect.Bottom = height - 1; 
+        Rect.Right = width - 1; 
+
+        HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);      // Get Handle 
+        SetConsoleScreenBufferSize(Handle, coord);            // Set Buffer Size 
+        SetConsoleWindowInfo(Handle, TRUE, &Rect);            // Set Window Size 
+    } 
+
+    void WindowInit(int width, int height) 
     {
-        system("cls");
+        /* Initialize console window */
+
+        Clear();
         HANDLE hOut;
         CONSOLE_SCREEN_BUFFER_INFO SBInfo;
         COORD NewSBSize;
 
-        SetConsoleTitleA("Window Name");
-        ShowConsoleCursor(false);   
+        SetConsoleTitleA("Window Name");   // Set the window name
+        ShowConsoleCursor(false);          // Set the "default" console cursor visibility to false
+        SetWindow(width, height);          // Set window size
 
-        RENDERSTATE.width = window_width();
-        RENDERSTATE.height = window_height();          
-        RENDERSTATE.size = RENDERSTATE.width * RENDERSTATE.height * sizeof(unsigned int); 
+        RENDER_STATE.screen_width = WindowWidth();
+        RENDER_STATE.screen_height = WindowHeight();          
+        RENDER_STATE.screen_size = RENDER_STATE.screen_width * RENDER_STATE.screen_height * sizeof(unsigned int); 
 
         hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 
         GetConsoleScreenBufferInfo(hOut, &SBInfo);
-        NewSBSize.X = RENDERSTATE.width;
-        NewSBSize.Y = RENDERSTATE.height;
+        NewSBSize.X = RENDER_STATE.screen_width;
+        NewSBSize.Y = RENDER_STATE.screen_height;
 
         SetConsoleScreenBufferSize(hOut, NewSBSize);
     }
-
+    
     void WindowBuffer() 
     {        
-        if (RENDERSTATE.width != window_width() || RENDERSTATE.height != window_height())
+        /* Checking if buffer size was changed. */ 
+
+        if (RENDER_STATE.screen_width != WindowWidth() || RENDER_STATE.screen_height != WindowHeight())
         {
-            system("cls");
-            RENDERSTATE.changed_buffer = true;
+            Clear();
+            RENDER_STATE.changed_buffer = true;
             ShowConsoleCursor(false);  
 
             HANDLE hOut;
             CONSOLE_SCREEN_BUFFER_INFO SBInfo;
             COORD NewSBSize;
 
-            RENDERSTATE.width = window_width();
-            RENDERSTATE.height = window_height(); 
+            RENDER_STATE.screen_width = WindowWidth();
+            RENDER_STATE.screen_height = WindowHeight(); 
             
             hOut = GetStdHandle(STD_OUTPUT_HANDLE);
 
-            NewSBSize.X = RENDERSTATE.width;
-            NewSBSize.Y = RENDERSTATE.height;
+            NewSBSize.X = RENDER_STATE.screen_width;
+            NewSBSize.Y = RENDER_STATE.screen_height;
             SetConsoleScreenBufferSize(hOut, NewSBSize);
         }
     } 
-
-    int checker(int &cord, int size_cord)
-    {
-        if (cord < 0)
-            return cord = 0;       
-        else if (cord >= size_cord)
-            return cord = size_cord - 1;
-        else      
-            return cord;
-    }   
 };
 
-MainWindow Main_Window;
+MainWindow MAIN_WINDOW;
 
-#endif /* MAINWINDOW_H_INCLUDED */// 120 30
+#endif /* MAINWINDOW_H_INCLUDED */
