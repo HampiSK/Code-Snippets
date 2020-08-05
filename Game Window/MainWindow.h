@@ -8,7 +8,9 @@ struct RenderState
     /* Holding data for proper functionality of console window. */
 
     int screen_width;           // Last known screen width
+    int screen_min_width;       // Minimal screen width
     int screen_height;          // Last known screen height
+    int screen_min_height;      // Minimal screen height
     int screen_size;            // Last known screen size
     int x = 0;                  // Tracking x line of current cursor position (cursor is changed by the keys not a mouse)
     int y = 0;                  // Tracking y line of current cursor position (cursor is changed by the keys not a mouse)
@@ -64,6 +66,23 @@ struct MainWindow
         cursorInfo.bVisible = show; 
         SetConsoleCursorInfo(out, &cursorInfo);
     } 
+
+    void QuickEditMode(bool enable)
+    {
+        /* Enable/Disable Quick-Edit Mode in console window */
+
+        HANDLE hInput;
+        DWORD prev_mode;
+
+        if (enable)
+            SetConsoleMode(hInput, prev_mode);
+        else
+        {       
+            hInput = GetStdHandle(STD_INPUT_HANDLE);
+            GetConsoleMode(hInput, &prev_mode); 
+            SetConsoleMode(hInput, prev_mode & ENABLE_EXTENDED_FLAGS);
+        }
+    }
 
     int Center(int pointA, int pointB, std::string text)
     {
@@ -135,7 +154,7 @@ struct MainWindow
         SetConsoleWindowInfo(Handle, TRUE, &Rect);            // Set Window Size 
     } 
 
-    void WindowInit(int width, int height) 
+    void WindowInit(int width, int height, std::string window_name) 
     {
         /* Initialize console window */
 
@@ -144,9 +163,18 @@ struct MainWindow
         CONSOLE_SCREEN_BUFFER_INFO SBInfo;
         COORD NewSBSize;
 
-        SetConsoleTitleA("Window Name");   // Set the window name
-        ShowConsoleCursor(false);          // Set the "default" console cursor visibility to false
-        SetWindow(width, height);          // Set window size
+        // Convert string to char
+        char new_window_name[window_name.size() + 1];
+	    std::copy(window_name.begin(), window_name.end(), new_window_name);
+	    new_window_name[window_name.size()] = '\0';
+
+        SetConsoleTitleA(new_window_name);  // Set the window name
+        QuickEditMode(false);               // Disable Quick-Edit mode (select, copy, paste....)
+        ShowConsoleCursor(false);           // Set the "default" console cursor visibility to false
+        SetWindow(width, height);           // Set window size
+
+        RENDER_STATE.screen_min_width = width;
+        RENDER_STATE.screen_min_height = height;
 
         RENDER_STATE.screen_width = WindowWidth();
         RENDER_STATE.screen_height = WindowHeight();          
@@ -159,18 +187,28 @@ struct MainWindow
         NewSBSize.Y = RENDER_STATE.screen_height;
 
         SetConsoleScreenBufferSize(hOut, NewSBSize);
+        RENDER_STATE.changed_buffer = true;
+
     }
     
     void WindowBuffer() 
     {        
         /* Checking if buffer size was changed. */ 
 
+        if (RENDER_STATE.screen_width < RENDER_STATE.screen_min_width || RENDER_STATE.screen_height < RENDER_STATE.screen_min_height )
+        {
+            Clear();
+            RENDER_STATE.changed_buffer = true;
+            SetWindow(RENDER_STATE.screen_min_width, RENDER_STATE.screen_min_height);
+            RENDER_STATE.screen_width = WindowWidth();
+            RENDER_STATE.screen_height = WindowHeight(); 
+        }   
         if (RENDER_STATE.screen_width != WindowWidth() || RENDER_STATE.screen_height != WindowHeight())
         {
             Clear();
             RENDER_STATE.changed_buffer = true;
             ShowConsoleCursor(false);  
-
+            
             HANDLE hOut;
             CONSOLE_SCREEN_BUFFER_INFO SBInfo;
             COORD NewSBSize;
