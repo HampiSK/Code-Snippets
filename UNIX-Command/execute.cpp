@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string>
 
-// Compiled with: g++ --std=c++11 -g ./task.cpp -o ./task
+// Compiled with: g++ --std=c++11
 
 std::string execute(std::string command)
 {
