@@ -7,32 +7,32 @@
 
 
 /* Non template function to call with zero arguments */
-void print() {
+inline void print() {
     std::cout<<std::endl;
 }
 
 /* Template function with 1 argument */
 template <typename T>
-void print(T arg) {
+inline void print(const T & arg) {
     std::cout << arg << std::endl;
 }
 
 /* Base template used to print all values */
 template <typename T>
-void printAll(T arg) {
+void printAll(const T & arg) {
     std::cout << arg << " "; // We are not flushing as another values will be printed
 }
 
 /* Using recursion, all arguments will be printed */
 template <typename First, typename... T>
-void printAll(First first, T... args) {
+void printAll(const First & first, const T... args) {
     printAll(first);    
     printAll(args...); // Called multiple times based on args count
 }
 
 /* Variadic template with one or more arguments */
 template <typename First, typename... T>
-void print(First first, T... args) {
+void print(const First & first, const T... args) {
     printAll(first);    
     printAll(args...); // Called multiple times based on args count
     
@@ -41,7 +41,7 @@ void print(First first, T... args) {
 
 /* Print all elements in container */
 template <typename T>
-void print(std::vector<T> container) 
+void print(const std::vector<T> & container) 
 {
     for(auto i = container.begin(); i != container.end(); ++i)
         std::cout<<*i<<' ';
